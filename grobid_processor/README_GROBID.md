@@ -10,6 +10,24 @@ Process academic paper PDFs using GROBID to produce TEI XML output files.
    pip install grobid_client_python tqdm
    ```
 
+3. Ensure the package structure is set up correctly (see structure below)
+
+## Package Structure
+
+```
+.
+├── grobid.py                           # Main entry point
+├── requirements.txt                    # Python dependencies
+├── README.md                           # Parent README
+└── grobid_processor/                   # Package directory
+    ├── __init__.py                     # Package initialization
+    ├── config.py                       # Configuration settings
+    ├── processor.py                    # Core Grobid processor
+    ├── progress_tracker.py             # Progress tracking for resume
+    └── cli.py                          # Command-line interface
+    └── README_GROBID.md                # This file (README for Grobid package)
+```
+
 ### Starting the GROBID server (Docker)
 
 ```bash
