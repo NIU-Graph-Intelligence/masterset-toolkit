@@ -69,21 +69,6 @@ def main():
         print_usage()
         return
 
-    # Fallback mode: python nougat.py --fallback
-    if args[0] == "--fallback":
-        try:
-            processor = NougatProcessor()
-            processor.process_fallback_list()
-        except KeyboardInterrupt:
-            print("\n\nProcessing interrupted by user")
-            sys.exit(0)
-        except Exception as e:
-            print(f"\nError: {e}")
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
-        return
-
     conference, years = parse_arguments(args)
 
     if not conference:

@@ -24,15 +24,16 @@ pip install -r requirements.txt
 
 ```
 .
-├── nougat.py                          # Main entry point
+├── nougat.py                           # Main entry point
 ├── requirements.txt                    # Python dependencies
-├── README.md                          # This file
-└── nougat_processor/                  # Package directory
-    ├── __init__.py                    # Package initialization
-    ├── config.py                      # Configuration settings
-    ├── processor.py                   # Core Nougat processor
-    ├── progress_tracker.py            # Progress tracking for resume
-    └── cli.py                         # Command-line interface
+├── README.md                           # Parent README
+└── nougat_processor/                   # Package directory
+    ├── __init__.py                     # Package initialization
+    ├── config.py                       # Configuration settings
+    ├── processor.py                    # Core Nougat processor
+    ├── progress_tracker.py             # Progress tracking for resume
+    └── cli.py                          # Command-line interface
+    └── README_NOUGAT.md                # This file (README for Nougat package)
 ```
 
 ## Usage
@@ -53,27 +54,6 @@ Process multiple years:
 ```bash
 python nougat.py emnlp 2022 2023 2024
 ```
-
-Process GROBID fallback list (103 PDFs that GROBID failed on):
-```bash
-python nougat.py --fallback
-```
-
-### Commands for Running Nougat in Metis
-qsub -N nougat_aaai -v CONF_NAME=aaai run_generic.sh
-qsub -N nougat_aistats -v CONF_NAME=aistats run_generic.sh
-qsub -N nougat_colt -v CONF_NAME=colt run_generic.sh
-qsub -N nougat_cvpr -v CONF_NAME=cvpr run_generic.sh
-qsub -N nougat_eccv -v CONF_NAME=eccv run_generic.sh
-qsub -N nougat_iccv -v CONF_NAME=iccv run_generic.sh
-qsub -N nougat_iclr -v CONF_NAME=iclr run_generic.sh
-qsub -N nougat_icml -v CONF_NAME=icml run_generic.sh
-qsub -N nougat_ijcai -v CONF_NAME=ijcai run_generic.sh
-qsub -N nougat_jmlr -v CONF_NAME=jmlr run_generic.sh
-qsub -N nougat_naacl -v CONF_NAME=naacl run_generic.sh
-qsub -N nougat_neurips -v CONF_NAME=neurips run_generic.sh
-qsub -N nougat_uai -v CONF_NAME=uai run_generic.sh
-
 
 ### Supported Conferences
 
@@ -123,23 +103,19 @@ Edit `nougat_processor/config.py` to change:
 - Nougat generation parameters
 - DPI for PDF rendering
 
-Default paths:
-- PDFs: `/mnt/data/data/papers/<conference>/<year>/`
-- Outputs: `/home/ratul/masterset-recommendation/data/nougat_output/<conference>/<year>/`
-
 ## Examples
 
 ### Example 1: Process entire CVPR conference
 ```bash
 python nougat.py cvpr
 ```
-This processes all PDFs in `/mnt/data/data/papers/cvpr/*/` (all years)
+This processes all PDFs in `../data/masterset/papers/cvpr/*/` (all years)
 
 ### Example 2: Process specific year
 ```bash
 python nougat.py icml 2024
 ```
-This processes only `/mnt/data/data/papers/icml/2024/`
+This processes only `../data/masterset/papers/icml/2024/`
 
 ### Example 3: Process multiple years
 ```bash
@@ -156,16 +132,6 @@ python nougat.py emnlp 2023
 python nougat.py emnlp 2023
 # The script will skip already-processed files and continue
 ```
-
-## Fallback Mode
-
-The `--fallback` flag processes a predefined list of 103 PDFs that GROBID failed to handle. These paths are hardcoded in `config.py` under `FALLBACK_PDFS`. Output goes to the standard `nougat_output/{conf}/{year}/` directories. Already-processed files are skipped automatically, so it's safe to re-run after interruption.
-
-```bash
-python nougat.py --fallback
-```
-
-To update the list, edit the `FALLBACK_PDFS` list in `nougat_processor/config.py`.
 
 ## Output
 
