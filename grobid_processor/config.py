@@ -6,20 +6,10 @@ from pathlib import Path
 class Config:
     """Configuration class for GROBID TEI XML processor"""
 
-    # Base directories - For METIS
-    # METADATA_BASE_DIR = Path("/lstr/sahara/graphlab/ratul/data/metadata/")
-    # PDF_BASE_DIR = Path("/lstr/sahara/graphlab/ratul/data/papers/")
-    # GROBID_OUTPUT_BASE = Path("/home/ratul/masterset-data-preparation/output/grobid_output")
-
-    # Base directories - For 10.158.56.231 Server
-    # METADATA_BASE_DIR = Path("/mnt/data/data/metadata/")
-    # PDF_BASE_DIR = Path("/mnt/data/data/papers/")
-    # GROBID_OUTPUT_BASE = Path("/home/ratul/masterset-recommendation/data/grobid_output")
-
-    # Base directories - For lancer
-    METADATA_BASE_DIR = Path("/home/ratul/masterset-recommendation/data/metadata/")
-    PDF_BASE_DIR = Path("/home/ratul/masterset-recommendation/data/papers/")
-    GROBID_OUTPUT_BASE = Path("/home/ratul/masterset-recommendation/data/grobid_output")
+    # Base directories
+    METADATA_BASE_DIR = Path("../data/masterset/metadata/")
+    PDF_BASE_DIR = Path("../data/masterset/papers/")
+    GROBID_OUTPUT_BASE = Path("../data/masterset/grobid_output")
 
     # GROBID server settings
     GROBID_SERVER = "http://localhost:8070"
