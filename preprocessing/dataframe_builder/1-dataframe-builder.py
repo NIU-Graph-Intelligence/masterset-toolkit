@@ -9,16 +9,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ROOT_DIR = Path("../data/masterset_v1")
+ROOT_DIR = Path("../data/masterset")
 METADATA_ROOT = ROOT_DIR / "metadata"
 PAPERS_ROOT = ROOT_DIR / "papers"
-NOUGAT_OUTPUT_ROOT = ROOT_DIR / "nougat_output"
-GROBID_OUTPUT_ROOT = ROOT_DIR / "grobid_output"
-CITATION_CONTEXTS_ROOT = ROOT_DIR / "citation_contexts"
-PROMPT_ROOT = ROOT_DIR / "generated_prompts"
-PROMPT_SCORES_ROOT = ROOT_DIR / "prompt_scores"
-# DATAFRAME_OUTPUT_DIR = ROOT_DIR / "train_eval_set/v1.0"
-DATAFRAME_OUTPUT_DIR = Path("../data/masterset_test/train_eval_set/v1.0")
+DATAFRAME_OUTPUT_DIR = ROOT_DIR / "train_eval_set/v100.0"
 
 # Namespace UUID for deterministic paper ID generation (fixed, never change this)
 _FALLBACK_NAMESPACE = "f47ac10b-58cc-4372-a567-0d02b2c3d479"
@@ -55,14 +49,14 @@ def get_years(start, end, only_even, only_odd):
     return years
 
 
-def generate_paper_id(title, venue, year):
+def generate_paper_id(title, venue, year, original_id):
     
     # Uses UUID5 (SHA-1 based) with a fixed namespace so that:
     #  - The same paper always gets the same ID (deterministic)
     #  - Different papers get different IDs (collision-resistant)
     #  - IDs are stable across runs, additions, and deletions
     
-    key = f"{title.strip().lower()}|{venue.strip().lower()}|{int(year)}"
+    key = f"{title.strip().lower()}|{venue.strip().lower()}|{int(year)}|{original_id.strip().lower()}"
     return str(uuid.uuid5(PAPER_UUID_NAMESPACE, key))
 
 
@@ -119,15 +113,28 @@ def main():
                 authors = paper.get("authors", [])
                 year = paper.get("year", year)
                 venue = paper.get("conference", conf)
+                path = ""
 
-                nougat_path = pdf_path.replace("data/papers", "/data/nougat_output").replace(".pdf", ".md")
+                grobid_path = pdf_path.replace("data/papers", "data/grobid_output").replace(".pdf", ".grobid.tei.xml")
+                if not os.path.exists(ROOT_DIR / grobid_path):
+                    marker_path = pdf_path.replace("data/papers", "data/marker_output").replace(".pdf", ".md")
+                    if not os.path.exists(ROOT_DIR / marker_path):
+                        nougat_path = pdf_path.replace("data/papers", "data/nougat_output").replace(".pdf", ".md")
+                        if not os.path.exists(ROOT_DIR / nougat_path):
+                            print("Warning: No valid path found for paper (Grobid or Marker or Nougat):", pdf_path)
+                        else:
+                            path = nougat_path
+                    else:
+                        path = marker_path
+                else:
+                    path = grobid_path
 
                 # Generate a deterministic unique paper ID
-                paper_id = generate_paper_id(title, venue, year)
+                paper_id = generate_paper_id(title, venue, year, id)
 
                 rows.append({
                     "paper_id": paper_id,
-                    "path": nougat_path,
+                    "path": path,
                     "title": title,
                     "abstract": abstract,
                     "year": int(year),
