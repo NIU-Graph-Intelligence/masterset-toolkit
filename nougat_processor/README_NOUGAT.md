@@ -55,6 +55,11 @@ Process multiple years:
 python nougat.py emnlp 2022 2023 2024
 ```
 
+Process GROBID fallback list (PDFs that GROBID failed on):
+```bash
+python nougat.py --fallback
+```
+
 ### Supported Conferences
 
 - aaai
@@ -132,6 +137,16 @@ python nougat.py emnlp 2023
 python nougat.py emnlp 2023
 # The script will skip already-processed files and continue
 ```
+
+## Fallback Mode
+
+The `--fallback` flag processes a predefined list of PDFs that GROBID failed to handle. These paths are hardcoded in `config.py` under `FALLBACK_PDFS`. Output goes to the standard `nougat_output/{conf}/{year}/` directories. Already-processed files are skipped automatically, so it's safe to re-run after interruption.
+
+```bash
+python nougat.py --fallback
+```
+
+To update the list, edit the `FALLBACK_PDFS` list in `nougat_processor/config.py`.
 
 ## Output
 

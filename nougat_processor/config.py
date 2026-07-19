@@ -43,6 +43,16 @@ class Config:
     # Progress tracking
     PROGRESS_FILE = "nougat_progress.json"
 
+    # Fallback list: PDFs that GROBID failed to process (103 files)
+    # These will be processed by Nougat and saved to nougat_output/{conf}/{year}/
+    # Run with: python nougat.py --fallback
+    # This is a manual process as in, you have to put the paths of the failed PDFs in this FALLBACK_PDFS list manually
+    # Examples of one entry is shown as a comment inside FALLBACK_PDFS list:
+    FALLBACK_PDFS = [
+        # "cvpr/2015/Song_Joint_Multi-Feature_Spatial_2015_CVPR_paper_Joint Multi-Feature Spatial Context for Scene Reco.pdf",
+        # "iclr/2023/UvmDCdSPDOW_Information-Theoretic Diffusion.pdf",
+    ]
+
     @classmethod
     def get_pdf_dir(cls, conference, year=None):
         """Get PDF directory for a conference and optional year"""

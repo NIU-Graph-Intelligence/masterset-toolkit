@@ -119,6 +119,76 @@ class NougatProcessor:
         doc.close()
         return full_text
     
+    def process_fallback_list(self):
+        """Process the PDFs listed in FALLBACK_PDFS.
+
+        Skips files that already have nougat output.
+        """
+        fallback_paths = self.config.FALLBACK_PDFS
+
+        if not fallback_paths:
+            print("Error: FALLBACK_PDFS list is empty in config.py")
+            return
+
+        # Build (pdf_path, output_path) pairs, skipping already processed
+        files_to_process = []
+        already_by_nougat = 0
+
+        for relative_path_str in fallback_paths:
+            pdf_path = self.config.PDF_BASE_DIR / relative_path_str
+            if not pdf_path.exists():
+                print(f"Warning: PDF not found, skipping: {pdf_path}")
+                continue
+
+            output_path = self.get_output_path(pdf_path)
+
+            if output_path.exists():
+                already_by_nougat += 1
+            else:
+                files_to_process.append((pdf_path, output_path))
+
+        total = len(fallback_paths)
+        print(f"\n{'='*60}")
+        print(f"Fallback mode - Processing fallback PDFs with Nougat")
+        print(f"{'='*60}")
+        print(f"Total in list: {total}")
+        print(f"Already processed by Nougat: {already_by_nougat} (skipped)")
+        print(f"To process: {len(files_to_process)}")
+        print(f"{'='*60}\n")
+
+        if not files_to_process:
+            print("All fallback files already processed!")
+            return
+
+        processed_count = 0
+        error_count = 0
+        pbar = tqdm(files_to_process, desc="Processing fallback PDFs")
+
+        for pdf_path, output_path in pbar:
+            try:
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                full_text = self.extract_text_from_pdf(pdf_path)
+
+                if full_text:
+                    with open(output_path, "w", encoding="utf-8") as f:
+                        f.write(full_text)
+                    processed_count += 1
+                else:
+                    error_count += 1
+                    tqdm.write(f"Error: No text extracted - {pdf_path.name}")
+            except Exception as e:
+                error_count += 1
+                tqdm.write(f"Error processing {pdf_path.name}: {e}")
+
+        pbar.close()
+
+        print(f"\n{'='*60}")
+        print(f"Fallback processing complete!")
+        print(f"{'='*60}")
+        print(f"Successfully processed: {processed_count}")
+        print(f"Errors: {error_count}")
+        print(f"{'='*60}\n")
+
     def process_conference(self, conference: str, years: Optional[List[int]] = None):
         """Process all PDFs for a conference"""
         
