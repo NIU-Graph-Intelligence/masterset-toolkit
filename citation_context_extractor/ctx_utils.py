@@ -440,35 +440,15 @@ def _is_sentence_boundary(body: str, pos: int, direction: str) -> bool:
     Check if position `pos` is a real sentence boundary.
     `direction` is 'backward' (looking left for sentence start) or
     'forward' (looking right for sentence end).
+
+    Delegates to the shared sentence_utils module for comprehensive
+    non-boundary detection (abbreviations, dotted identifiers, etc.).
     """
-    if direction == 'backward':
-        ch = body[pos - 1] if pos > 0 else ''
-        if ch in '.!?':
-            before = body[max(0, pos - 5):pos]
-            after = body[pos:min(len(body), pos + 3)]
-            if re.search(r'\d$', before.rstrip('.!?')) and re.match(r'\d', after.lstrip()):
-                return False
-            if re.search(r'(?:et al|i\.e|e\.g|cf|vs|Fig|Eq|Sec|Ref|Tab|App|Prop)\.$', before):
-                return False
-            aft = after.lstrip()
-            if aft and (aft[0].isupper() or aft[0] in '(['):
-                return True
-        if ch == '\n' and pos >= 2 and body[pos - 2] == '\n':
-            return True
-        return False
-    else:  # forward
-        ch = body[pos] if pos < len(body) else ''
-        if ch in '.!?':
-            before = body[max(0, pos - 3):pos + 1]
-            after = body[pos + 1:min(len(body), pos + 4)] if pos + 1 < len(body) else ''
-            if re.search(r'\d$', before.rstrip('.!?')) and re.match(r'\d', after):
-                return False
-            if re.search(r'(?:et al|i\.e|e\.g|cf|vs|Fig|Eq|Sec|Ref|Tab|App|Prop)\.$', before):
-                return False
-            return True
-        if ch == '\n' and pos + 1 < len(body) and body[pos + 1] == '\n':
-            return True
-        return False
+    try:
+        from .sentence_utils import is_sentence_boundary
+    except ImportError:
+        from sentence_utils import is_sentence_boundary
+    return is_sentence_boundary(body, pos, direction)
 
 
 def _find_sentence_start(body: str, pos: int, boundary: int) -> int:

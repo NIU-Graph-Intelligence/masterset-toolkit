@@ -110,16 +110,150 @@ def get_valid_bibl_ids(bibl_list):
 # STEP 2: BUILD STRUCTURED BODY TEXT WITH CITATION MARKERS
 # ============================================================
 
-def get_section_header(element):
-    """Walk up from element to find the nearest ancestor div's <head> text."""
-    # Check immediate parent div, then ancestors
-    heads = element.xpath('ancestor::tei:div[1]/tei:head', namespaces=NS)
-    if heads:
-        # Combine head number and text
-        head = heads[0]
-        n = head.get('n', '')
-        text = head.text if head.text else ''
-        return f"{n} {text}".strip() if n else text.strip()
+def _is_main_section_n(n_val):
+    """Check if an n attribute value represents a main section (e.g. '1', '6', '1.')
+    vs a subsection (e.g. '2.1', '5.3', '3.1.') or unnumbered (empty string).
+
+    Main sections have a single integer, optionally followed by a trailing dot:
+    '1', '2', '10', '1.', '6.'
+    Subsections have internal dots: '2.1', '3.4.2', '3.1.'
+    Unnumbered heads have no n or empty n.
+    """
+    if not n_val:
+        return False
+    # Strip trailing dot then check for pure integer
+    cleaned = n_val.strip().rstrip('.')
+    return re.fullmatch(r'\d+', cleaned) is not None
+
+
+_APPENDIX_HEAD_RE = re.compile(
+    r'^(?:Appendix|A\.|B\.|C\.|D\.|E\.|F\.)',
+    re.IGNORECASE,
+)
+
+
+def _is_appendix_head(text):
+    """Check if a head's text indicates an appendix section."""
+    return bool(_APPENDIX_HEAD_RE.match(text.strip()))
+
+
+def _build_div_to_main_section_map(root):
+    """Walk all divs in both <body> and <back> in document order and build a
+    mapping from each div element to its parent main section header string.
+
+    GROBID typically outputs flat divs (all siblings under <body>), so
+    subsection divs with n='2.1' are siblings of n='2', not children.
+    Unnumbered divs (n='') also appear as flat siblings.
+
+    For <back> matter (appendix, acknowledgements, etc.), all divs are
+    mapped to "Appendix" since they have no numbered main sections.
+    Body divs whose head looks like an appendix (e.g. "A. Theoretical Proofs")
+    are also mapped to "Appendix".
+
+    Returns:
+        dict mapping sourceline of div element → main section header string
+        (sourceline is stable across XPath queries unlike id())
+    """
+    div_to_main = {}
+
+    # --- Body divs ---
+    body = root.find('.//tei:body', namespaces=NS)
+    if body is not None:
+        current_main = ''
+        found_any_numbered = False
+        body_divs = body.xpath('tei:div', namespaces=NS)
+
+        for div in body_divs:
+            head = div.find('tei:head', namespaces=NS)
+            if head is not None:
+                n = (head.get('n', '') or '').strip()
+                text = (head.text or '').strip()
+                full_header = f'{n} {text}'.strip() if n else text
+
+                if _is_main_section_n(n):
+                    current_main = full_header
+                    found_any_numbered = True
+                elif _is_appendix_head(text):
+                    # Appendix section in body (some papers have appendix in body)
+                    current_main = 'Appendix'
+
+            div_to_main[div.sourceline] = current_main
+
+        # --- Fallback for fully unnumbered papers (e.g. AAAI) ---
+        # If GROBID didn't extract ANY numbered sections, every body div
+        # maps to "". Fall back to using each div's own head text as the
+        # section label, since there's no main/sub distinction to make.
+        if not found_any_numbered:
+            for div in body_divs:
+                head = div.find('tei:head', namespaces=NS)
+                if head is not None:
+                    text = (head.text or '').strip()
+                    if _is_appendix_head(text):
+                        div_to_main[div.sourceline] = 'Appendix'
+                    elif text:
+                        div_to_main[div.sourceline] = text
+                    else:
+                        div_to_main[div.sourceline] = ''
+                else:
+                    div_to_main[div.sourceline] = ''
+
+        # --- Cleanup pass for mixed papers ---
+        # Some papers have partial numbering: subsections like n="2.1"
+        # exist but their parent main section n="2" is missing from GROBID
+        # output. Those subsections map to "" because current_main was
+        # never set before the first real main section.
+        # Fix: any div still mapped to "" that has a head with text gets
+        # its own head text as the section label.
+        # Also handles headless first divs (Introduction) where GROBID
+        # failed to extract the section header entirely.
+        for i, div in enumerate(body_divs):
+            if div_to_main.get(div.sourceline) == '':
+                head = div.find('tei:head', namespaces=NS)
+                if head is not None:
+                    n = (head.get('n', '') or '').strip()
+                    text = (head.text or '').strip()
+                    full_header = f'{n} {text}'.strip() if n else text
+                    if _is_appendix_head(text):
+                        div_to_main[div.sourceline] = 'Appendix'
+                    elif full_header:
+                        div_to_main[div.sourceline] = full_header
+                elif i == 0:
+                    # First div in body with no <head> at all.
+                    # GROBID failed to extract the section header.
+                    # The first body div with content is virtually always
+                    # the Introduction (GROBID puts abstracts in <front>).
+                    ps = div.findall('tei:p', namespaces=NS)
+                    if ps:
+                        div_to_main[div.sourceline] = 'Introduction'
+
+    # --- Back matter divs (appendix, acknowledgements, etc.) ---
+    back = root.find('.//tei:back', namespaces=NS)
+    if back is not None:
+        for div in back.xpath('.//tei:div', namespaces=NS):
+            div_to_main[div.sourceline] = 'Appendix'
+
+    return div_to_main
+
+
+def get_section_header(element, div_to_main):
+    """Look up the main section header for a paragraph element using the
+    pre-built div-to-main-section map.
+
+    Falls back to the div's own head text if the div isn't in the map
+    (shouldn't happen, but defensive).
+    """
+    anc_divs = element.xpath('ancestor::tei:div[1]', namespaces=NS)
+    if anc_divs:
+        div = anc_divs[0]
+        main_section = div_to_main.get(div.sourceline)
+        if main_section is not None:
+            return main_section
+        # Fallback: use the div's own head
+        head = div.find('tei:head', namespaces=NS)
+        if head is not None:
+            n = (head.get('n', '') or '').strip()
+            text = (head.text or '').strip()
+            return f'{n} {text}'.strip() if n else text
     return ""
 
 
@@ -166,32 +300,122 @@ def process_paragraph_to_text(p_element, valid_bibl_ids):
     return text
 
 
+def _merge_p_and_formula_runs(div_element, valid_bibl_ids):
+    """Walk a div's direct children and merge <p> elements that are split by
+    <formula> elements into single logical paragraphs.
+
+    GROBID often breaks a paragraph around inline/display math:
+        <p>...text before formula...</p>
+        <formula>...math...</formula>
+        <p>...text continuing after formula...</p>
+
+    This function detects such runs and produces merged text. A "run" is a
+    sequence of consecutive <p> and <formula> children that starts and ends
+    with a <p> (formulas between them act as glue). A standalone <p> with no
+    adjacent formula is emitted as-is.
+
+    Returns:
+        list of (merged_text, first_p_element) tuples.
+        first_p_element is needed for section header lookup later.
+    """
+    TEI_P = '{http://www.tei-c.org/ns/1.0}p'
+    TEI_FORMULA = '{http://www.tei-c.org/ns/1.0}formula'
+
+    children = list(div_element)
+    results = []
+    i = 0
+
+    while i < len(children):
+        child = children[i]
+
+        if child.tag != TEI_P:
+            i += 1
+            continue
+
+        # Start a run: collect this <p> and any following <formula><p> pairs
+        run_elements = [child]
+        first_p = child
+        j = i + 1
+
+        while j < len(children):
+            if children[j].tag == TEI_FORMULA:
+                # Check if a <p> follows the formula
+                if j + 1 < len(children) and children[j + 1].tag == TEI_P:
+                    run_elements.append(children[j])      # formula
+                    run_elements.append(children[j + 1])   # next <p>
+                    j += 2
+                else:
+                    # Formula at the end with no following <p> — include it
+                    run_elements.append(children[j])
+                    j += 1
+                    break
+            else:
+                break
+
+        # Build merged text from the run
+        text_parts = []
+        for el in run_elements:
+            if el.tag == TEI_P:
+                t = process_paragraph_to_text(el, valid_bibl_ids)
+                if t:
+                    text_parts.append(t)
+            elif el.tag == TEI_FORMULA:
+                t = ''.join(el.itertext()).strip()
+                t = re.sub(r'\s+', ' ', t).strip()
+                if t:
+                    text_parts.append(t)
+
+        merged = ' '.join(text_parts)
+        if merged:
+            results.append((merged, first_p))
+
+        i = j
+
+    return results
+
+
 def build_body_sections(root, valid_bibl_ids, exclude_appendix=False):
     """
     Build a list of (section_header, paragraph_text, original_p_element) tuples
-    from the body of the paper.
+    from both <body> and <back> of the paper.
 
-    If exclude_appendix is True, skip sections whose header starts with
-    'Appendix' or 'A.' etc.
+    Merges <p> elements that are split by <formula> elements into single
+    logical paragraphs, so that 3-sentence context windows are not cut off
+    at formula boundaries.
+
+    section_header is always the MAIN section (e.g. '6 Results and Discussion'),
+    never a subsection (e.g. '6.2 Codebook Analysis') or unnumbered sub-heading.
+    Back-matter divs are labelled "Appendix".
+
+    If exclude_appendix is True, skip sections labelled "Appendix".
     """
-    body = root.find('.//tei:body', namespaces=NS)
-    if body is None:
-        return []
+    # Pre-build the div → main section mapping (covers body + back)
+    div_to_main = _build_div_to_main_section_map(root)
 
     results = []
-    all_paragraphs = body.xpath('.//tei:p', namespaces=NS)
 
-    for p in all_paragraphs:
-        header = get_section_header(p)
+    # Collect all divs from body and back
+    all_divs = []
 
-        if exclude_appendix:
-            h_lower = header.lower()
-            if any(h_lower.startswith(x) for x in ['appendix', 'a.', 'b.', 'c.', 'supplementary']):
+    body = root.find('.//tei:body', namespaces=NS)
+    if body is not None:
+        all_divs.extend(body.xpath('.//tei:div', namespaces=NS))
+
+    back = root.find('.//tei:back', namespaces=NS)
+    if back is not None:
+        all_divs.extend(back.xpath('.//tei:div', namespaces=NS))
+
+    # Walk each div and merge p/formula runs within it
+    for div in all_divs:
+        merged_paras = _merge_p_and_formula_runs(div, valid_bibl_ids)
+
+        for text, first_p in merged_paras:
+            header = get_section_header(first_p, div_to_main)
+
+            if exclude_appendix and header == 'Appendix':
                 continue
 
-        text = process_paragraph_to_text(p, valid_bibl_ids)
-        if text:
-            results.append((header, text, p))
+            results.append((header, text, first_p))
 
     return results
 
@@ -200,75 +424,11 @@ def build_body_sections(root, valid_bibl_ids, exclude_appendix=False):
 # STEP 3: SENTENCE SPLITTING
 # ============================================================
 
-# Common abbreviations that end with periods but are NOT sentence endings
-_ABBREV_PATTERN = re.compile(
-    r'(?:et al|i\.e|e\.g|cf|vs|Fig|Eq|Sec|Ref|Tab|App|Prop|Thm|Lem|Cor|Def|'
-    r'Prof|Dr|Mr|Mrs|Ms|Jr|Sr|Inc|Ltd|Corp|Vol|No|pp|Chap|Dept|Univ|approx|'
-    r'resp|w\.r\.t|s\.t|viz|ca|[A-Z])$'
-)
-
-
-def split_sentences(text):
-    """
-    Split text into sentences, being careful about abbreviations, decimal
-    numbers, and citation markers.
-
-    Returns a list of sentence strings.
-    """
-    if not text:
-        return []
-
-    sentences = []
-    current_start = 0
-    i = 0
-
-    while i < len(text):
-        ch = text[i]
-
-        if ch in '.!?':
-            # Check if this is a real sentence boundary
-            before = text[max(0, i - 20):i + 1]
-            after = text[i + 1:min(len(text), i + 10)].lstrip()
-
-            # Not a boundary if: abbreviation
-            if _ABBREV_PATTERN.search(before.rstrip('.!?')):
-                i += 1
-                continue
-
-            # Not a boundary if: decimal number (e.g., "3.14")
-            if i > 0 and text[i - 1].isdigit() and after and after[0].isdigit():
-                i += 1
-                continue
-
-            # Not a boundary if: inside parentheses that look like a citation
-            # e.g., "(Author et al., 2022)"
-            depth = 0
-            for j in range(i, max(i - 200, -1), -1):
-                if text[j] == ')':
-                    depth += 1
-                elif text[j] == '(':
-                    depth -= 1
-                    if depth < 0:
-                        break
-            if depth < 0:
-                # We're inside parens - not a boundary
-                i += 1
-                continue
-
-            # It's a boundary if followed by space + uppercase or end of text
-            if not after or (after[0].isupper() or after[0] in '("\'['):
-                sent = text[current_start:i + 1].strip()
-                if sent:
-                    sentences.append(sent)
-                current_start = i + 1
-        i += 1
-
-    # Last piece
-    remainder = text[current_start:].strip()
-    if remainder:
-        sentences.append(remainder)
-
-    return sentences
+# Import shared sentence splitter (also used by ctx_utils.py for nougat)
+try:
+    from .sentence_utils import split_sentences
+except ImportError:
+    from sentence_utils import split_sentences
 
 
 # ============================================================

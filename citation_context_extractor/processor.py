@@ -27,7 +27,7 @@ class CitationContextProcessor:
     # ---------------------------------------------------------
     def _initialize_progress_tracker(self, conference: str, years: Optional[List[int]] = None):
         """Create a progress tracker unique to this conference/year combination."""
-        prefix = "grobid" if self.source == "grobid" else "citation_context"
+        prefix = {"grobid": "grobid", "marker": "marker"}.get(self.source, "citation_context")
         if years:
             years_str = "_".join(map(str, sorted(years)))
             filename = f"{prefix}_progress_{conference}_{years_str}.json"
@@ -104,8 +104,8 @@ class CitationContextProcessor:
     def get_output_path(self, input_path: Path) -> Path:
         """Derive the output .json path from the input file path.
 
-        For nougat: paper.md → paper.json
-        For grobid: paper.grobid.tei.xml → paper.json
+        For grobid: paper.grobid.tei.xml → paper.json (in OUTPUT_BASE)
+        For nougat: paper.md → paper.json (in OUTPUT_BASE)
         The relative conference/year structure is preserved.
         """
         if self.source == "grobid":

@@ -46,17 +46,20 @@ These files are loaded via `importlib` at runtime. **No code is copied** — any
 
 **Process ALL conferences (all years):**
 ```bash
+python -m citation_context_extractor --grobid
 python -m citation_context_extractor --nougat
 ```
 
 **Process all years of a specific conference:**
 ```bash
 python -m citation_context_extractor --nougat icml
+python -m citation_context_extractor --grobid icml
 ```
 
 **Process a specific year:**
 ```bash
 python -m citation_context_extractor --nougat aaai 2024
+python -m citation_context_extractor --grobid icml 2024
 ```
 
 **Process multiple years:**
@@ -73,8 +76,8 @@ python extract_contexts.py --nougat icml 2024
 
 | Flag       | Description                                                       |
 |------------|-------------------------------------------------------------------|
-| `--nougat` | Process Nougat OCR `.md` files                                    |
 | `--grobid` | Process GROBID `.grobid.tei.xml` files (fills in missing JSONs)   |
+| `--nougat` | Process Nougat OCR `.md` files                                    |
 
 ### Help
 
