@@ -19,8 +19,24 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(os.getenv("ROOT_DIR", "/home/ratul/mustcite/")) 
 TARGET_CONFERENCES = {'neurips', 'icml', 'iclr'}
 TRAIN_YEARS = (2018, 2024)
-EVAL_YEAR = (2025, 2026) # remove
+EVAL_YEAR = (2025) # remove
 DATAFRAME_DIR = ROOT_DIR / "data_test/train_eval_set/v1.0"
+
+
+def year_range(years) -> tuple:
+    """Normalize a year config into an inclusive (start, end) tuple.
+
+    Accepts an int (2025) or a (start, end) pair (2024, 2025).
+    """
+    if isinstance(years, int):
+        return (years, years)
+    start, end = min(years), max(years)
+    return (start, end)
+
+
+def format_years(years) -> str:
+    start, end = year_range(years)
+    return str(start) if start == end else f"{start}-{end}"
 
 
 def build_venue_lookup(papers_df: pd.DataFrame) -> dict:
@@ -40,7 +56,7 @@ def filter_papers(papers_df: pd.DataFrame, venue_lookup: dict) -> pd.DataFrame:
 
     print("\n--- Applying Graph Reduction and Year Split ---")
     print(f"Target conferences: {TARGET_CONFERENCES}")
-    print(f"Training years: {TRAIN_YEARS[0]}-{TRAIN_YEARS[1]}, Evaluation year: {EVAL_YEAR}")
+    print(f"Training years: {format_years(TRAIN_YEARS)}, Evaluation years: {format_years(EVAL_YEAR)}")
 
     # 1. Identify the "core" papers from the target conferences
     core_papers_df = papers_df[papers_df["venue"].isin(TARGET_CONFERENCES)]
@@ -79,11 +95,14 @@ def split_papers(core_papers_df: pd.DataFrame):
     Returns:
         A tuple containing two DataFrames: (training_papers_df, evaluation_papers_df)
     """
+    train_start, train_end = year_range(TRAIN_YEARS)
+    eval_start, eval_end = year_range(EVAL_YEAR)
+
     training_papers_df = core_papers_df[
-        core_papers_df["year"].between(TRAIN_YEARS[0], TRAIN_YEARS[1])
+        core_papers_df["year"].between(train_start, train_end)
     ].copy()
     evaluation_papers_df = core_papers_df[
-        core_papers_df["year"].between(EVAL_YEAR[0], EVAL_YEAR[1]) & 
+        core_papers_df["year"].between(eval_start, eval_end) &
         (core_papers_df["venue"].isin(TARGET_CONFERENCES))
     ].copy()
 

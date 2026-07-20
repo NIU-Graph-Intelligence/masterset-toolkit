@@ -9,10 +9,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ROOT_DIR = Path("../data/masterset")
-METADATA_ROOT = ROOT_DIR / "metadata"
-PAPERS_ROOT = ROOT_DIR / "papers"
-DATAFRAME_OUTPUT_DIR = ROOT_DIR / "train_eval_set/v100.0"
+#set your own root path in .env file and make sure to use a fallback path as well
+ROOT_DIR = Path(os.getenv("ROOT_DIR", "/home/ratul/mustcite/")) 
+METADATA_ROOT = ROOT_DIR / "data/metadata"
+DATAFRAME_OUTPUT_DIR = ROOT_DIR / "data/train_eval_set/v1.0"
 
 # Namespace UUID for deterministic paper ID generation (fixed, never change this)
 _FALLBACK_NAMESPACE = "f47ac10b-58cc-4372-a567-0d02b2c3d479"
