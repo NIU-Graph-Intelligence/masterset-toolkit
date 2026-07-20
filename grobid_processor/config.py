@@ -1,15 +1,17 @@
 """Configuration settings for GROBID processor"""
-
+import os
 from pathlib import Path
-
+from dotenv import load_dotenv
 
 class Config:
     """Configuration class for GROBID TEI XML processor"""
 
     # Base directories
-    METADATA_BASE_DIR = Path("../data/masterset/metadata/")
-    PDF_BASE_DIR = Path("../data/masterset/papers/")
-    GROBID_OUTPUT_BASE = Path("../data/masterset/grobid_output")
+    #set your own root path in .env file and make sure to use a fallback path as well
+    ROOT_DIR = Path(os.getenv("ROOT_DIR", "/home/ratul/mustcite/"))
+    METADATA_BASE_DIR = ROOT_DIR / "data/metadata/"
+    PDF_BASE_DIR = ROOT_DIR / "data/papers/"
+    GROBID_OUTPUT_BASE = ROOT_DIR / "data/grobid_output"
 
     # GROBID server settings
     GROBID_SERVER = "http://localhost:8070"
