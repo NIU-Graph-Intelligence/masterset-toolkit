@@ -1,25 +1,28 @@
 """Configuration settings for Citation Context Extractor"""
-
+import os
 from pathlib import Path
-
+from dotenv import load_dotenv
 
 class Config:
     """Configuration class for Citation Context Extractor"""
 
+    #set your own root path in .env file and make sure to use a fallback path as well
+    ROOT_DIR = Path(os.getenv("ROOT_DIR", "/home/ratul/mustcite/"))
+
     # =========================================================
     # Nougat source directories
     # =========================================================
-    NOUGAT_INPUT_BASE = Path("../data/masterset/nougat_output")
+    NOUGAT_INPUT_BASE = ROOT_DIR / "data/nougat_output"
 
     # =========================================================
     # GROBID source directories
     # =========================================================
-    GROBID_INPUT_BASE = Path("../data/masterset/grobid_output")
+    GROBID_INPUT_BASE = ROOT_DIR / "data/grobid_output"
 
     # =========================================================
     # Output directory for extracted citation contexts
     # =========================================================
-    OUTPUT_BASE = Path("../data/masterset/citation_contexts")
+    OUTPUT_BASE = ROOT_DIR / "data/citation_contexts"
 
     # =========================================================
     # Supported conferences (same 15 as nougat_processor)
