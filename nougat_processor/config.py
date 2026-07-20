@@ -1,15 +1,18 @@
 """Configuration settings for Nougat processor"""
-
+import os
 from pathlib import Path
 import torch
-
+from dotenv import load_dotenv
 
 class Config:
     """Configuration class for Nougat OCR processor"""
 
-    METADATA_BASE_DIR = Path("../data/masterset/metadata/")
-    PDF_BASE_DIR = Path("../data/masterset/papers/")
-    NOUGAT_OUTPUT_BASE = Path("../data/masterset/nougat_output")
+    # Base directories
+    #set your own root path in .env file and make sure to use a fallback path as well
+    ROOT_DIR = Path(os.getenv("ROOT_DIR", "/home/ratul/mustcite/"))
+    METADATA_BASE_DIR = ROOT_DIR / "data/metadata/"
+    PDF_BASE_DIR = ROOT_DIR / "data/papers/"
+    NOUGAT_OUTPUT_BASE = ROOT_DIR / "data/nougat_output"
 
     # Model settings
     MODEL_NAME = "facebook/nougat-small"
@@ -49,8 +52,8 @@ class Config:
     # This is a manual process as in, you have to put the paths of the failed PDFs in this FALLBACK_PDFS list manually
     # Examples of one entry is shown as a comment inside FALLBACK_PDFS list:
     FALLBACK_PDFS = [
-        # "cvpr/2015/Song_Joint_Multi-Feature_Spatial_2015_CVPR_paper_Joint Multi-Feature Spatial Context for Scene Reco.pdf",
-        # "iclr/2023/UvmDCdSPDOW_Information-Theoretic Diffusion.pdf",
+        "cvpr/2015/Song_Joint_Multi-Feature_Spatial_2015_CVPR_paper_Joint Multi-Feature Spatial Context for Scene Reco.pdf",
+        "iclr/2023/UvmDCdSPDOW_Information-Theoretic Diffusion.pdf",
     ]
 
     @classmethod
