@@ -1,20 +1,23 @@
 """Configuration settings for Generate Prompts"""
-
+import os
 from pathlib import Path
-
+from dotenv import load_dotenv
 
 class Config:
     """Configuration class for Generate Prompts"""
 
+    #set your own root path in .env file and make sure to use a fallback path as well
+    ROOT_DIR = Path(os.getenv("ROOT_DIR", "/home/ratul/mustcite/"))
+
     # =========================================================
     # Input directory — citation context JSONs
     # =========================================================
-    INPUT_BASE = Path("../data/masterset/citation_contexts")
+    INPUT_BASE = ROOT_DIR / "data/citation_contexts"
 
     # =========================================================
     # Output directory for generated prompt text files
     # =========================================================
-    OUTPUT_BASE = Path("../data/masterset/generated_prompts")
+    OUTPUT_BASE = ROOT_DIR / "data/generated_prompts"
 
     # =========================================================
     # Supported conferences (same 15 as citation_context_extractor)
