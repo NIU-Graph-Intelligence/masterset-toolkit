@@ -6,16 +6,45 @@ This document outlines the complete preprocessing pipeline for data preparation 
 
 ---
 
-## Step 1: Nougat and Grobid Processing
+## Step 0: Create an environment variable
 
-Starts with Nougat and Grobid processing.
+Inside this repository, create a `'.env'` file and put one variable named `'ROOT_DIR'`. It is path to the parent directory where the sub-modules/sub-repositories (`'OpenPapers'`, `'masterset-toolkit'`, and `'masterset-benchmark'`) stay. 
+For example, if your directory structure is like this:
 
-- **nougat_processor**
+├── ~/Desktop/mustcite/
+    ├── data/
+          ├── papers
+          ├── metadata
+          ├── grobid_output
+          ├── nougat_output
+          ├── citation_contexts
+          ├── generated_prompts
+          ├── prompt_scores
+          ├── train_eval_set
+              ├── v1.0
+                  ├── all_papers_with_refs_and_labels.parquet
+                  ├── train.parquet
+                  ├── eval.parquet
+    ├── masters-toolkit
+          ├── grobid_processor
+          ├── nougat_processor
+          ├── citation_context_extractor
+          ├── etc. packages ---------
+    ├── masterset-benchmark # for experiments
+
+The value of the `'ROOT_DIR'` would be `'/Desktop/mustcite/'`.
+
+
+## Step 1: Grobid and Nougat Processing
+
+Starts with Grobid and Nougat processing.
+
 - **grobid_processor**
+- **nougat_processor**
 
-We get .tei.xml files of extracted texts by Grobid and .md files of parsed texts by Marker. Read READMEs from the following two packages:
-1. grobid_processor
-2. nougat_processor
+We get .md files of extracted texts by Nougat and .xml files of parsed texts by Grobid.
+
+One clarification: In the paper, our primary extractor was Nougat, and as a fallback we used Grobid. Now, we are using Grobid as our primary PDF processor and Nougat as a fallback. In this version, we made the three-sentence extraction from raw paper texts more accurate, and robust.
 
 ---
 
@@ -23,8 +52,8 @@ We get .tei.xml files of extracted texts by Grobid and .md files of parsed texts
 
 We run the citation_context_extractor package after that.
 
-- First using `--grobid` argument. Because Grobid is our primarily tools for citation extraction. For fallback, we use Nougat (using `--nougat`).
-- Those skipped ones will be covered by the `--nougat` argument. What it will do is: for the missing citation contexts, it will extract those contexts from the Nougat generated .md files.
+- First using `--grobid` argument. Nougat will automatically skip the alpha-tag citation number mismatch patterns.
+- Those skipped ones will be covered by the `--nougat` argument. What it will do is: for the missing citation contexts, it will extract those contexts from the Nougat generated .md files because Grobid couldn't process them from its .md files (because of number mismatches of alpha-tag).
 
 ---
 
@@ -45,17 +74,15 @@ We will first build our dataset from `/preprocessing/dataframe-builder` (script 
 
 ## Step 4: Prompt Generation
 
-Now we know, which prompts to build for LLM processing i.e. IF (`'in_dataset'` = true || `'in_conference_list'` = true). Now we run the `'generate_prompts'` package. It will automatically only generate those prompts needed for LLM processing inside `'generated_prompts_filtered'` directory.
+Now we know, which prompts to build for LLM processing i.e. IF (`'in_dataset'` = true || `'in_conference_list'` = true). Now we run the `'generate_prompts'` package. It will automatically only generate those prompts needed for LLM processing inside `'generated_prompts'` directory.
 
 ---
 
 ## Step 5: LLM Processing
 
-Now we can run the LLM processing package `'run_on_prompts'` to generate the Type-1 and Type-2 ground truths. This package has 3 backends:
+We created a package named `'run_on_prompts'` to generate the Type-1 and Type-2 ground truths. This package has our own Google Cloud Platform setup and `'gemini-2.5-flash'` model backend (API) along with some other models. For our `'MasterSet-CoreML-v1'` version, we used `'gemini-2.5-flash'` for generating the ground truths. On purpose, we are exluding the `'run_on_prompts'` package. However, users may run the prompts using their own setup, whether it be from GCP account or using open-weights models, only if they want to recreate the labels. Otherwise, we already shared the labels and train and evaluation set as well which users may use.
 
-1. Qwen
-2. Gemini 2.5 Flash
-3. Gemini 2.5 Batch API
+
 
 ---
 
