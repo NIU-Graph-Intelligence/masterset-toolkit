@@ -10,9 +10,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 #set your own root path in .env file and make sure to use a fallback path as well
-ROOT_DIR = Path(os.getenv("ROOT_DIR", "/home/ratul/mustcite/")) 
-METADATA_ROOT = ROOT_DIR / "data/metadata"
-DATAFRAME_OUTPUT_DIR = ROOT_DIR / "data/train_eval_set/v1.0"
+ROOT_DIR = Path(os.getenv("ROOT_DIR", "/home/ratul/mustcite/data"))
+METADATA_ROOT = ROOT_DIR / "metadata"
+DATAFRAME_OUTPUT_DIR = ROOT_DIR / "train_eval_set/v1.0"
 
 # Namespace UUID for deterministic paper ID generation (fixed, never change this)
 _FALLBACK_NAMESPACE = "f47ac10b-58cc-4372-a567-0d02b2c3d479"
@@ -99,8 +99,13 @@ def main():
                 if not pdf_path:
                     # that paper was not downloaded
                     continue
+                # Normalize away a legacy "data/" prefix some older metadata copies
+                # still carry, so both that and OpenPapers' current prefix-free
+                # "papers/{conf}/{year}/{file}.pdf" format resolve the same way.
+                if pdf_path.startswith("data/"):
+                    pdf_path = pdf_path[len("data/"):]
                 absolute_pdf_path = ROOT_DIR / pdf_path
-                citation_contexts_path = str(absolute_pdf_path).replace("/data/papers", "/data/citation_contexts").replace(".pdf", ".json")
+                citation_contexts_path = str(absolute_pdf_path).replace("/papers", "/citation_contexts", 1).replace(".pdf", ".json")
                 if not os.path.exists(citation_contexts_path):
                     # that paper has no citation contexts due to possible reasons:
                     # - Extractor found the citation number mismatch in Nougat texts
@@ -115,11 +120,11 @@ def main():
                 venue = paper.get("conference", conf)
                 path = ""
 
-                grobid_path = pdf_path.replace("data/papers", "data/grobid_output").replace(".pdf", ".grobid.tei.xml")
+                grobid_path = pdf_path.replace("papers", "grobid_output", 1).replace(".pdf", ".grobid.tei.xml")
                 if not os.path.exists(ROOT_DIR / grobid_path):
-                    marker_path = pdf_path.replace("data/papers", "data/marker_output").replace(".pdf", ".md")
+                    marker_path = pdf_path.replace("papers", "marker_output", 1).replace(".pdf", ".md")
                     if not os.path.exists(ROOT_DIR / marker_path):
-                        nougat_path = pdf_path.replace("data/papers", "data/nougat_output").replace(".pdf", ".md")
+                        nougat_path = pdf_path.replace("papers", "nougat_output", 1).replace(".pdf", ".md")
                         if not os.path.exists(ROOT_DIR / nougat_path):
                             print("Warning: No valid path found for paper (Grobid or Marker or Nougat):", pdf_path)
                         else:

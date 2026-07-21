@@ -9,10 +9,10 @@ from rapidfuzz import process, fuzz
 from dotenv import load_dotenv
 
 #set your own root path in .env file and make sure to use a fallback path as well
-ROOT_DIR = Path(os.getenv("ROOT_DIR", "/home/ratul/mustcite/")) 
-DATAFRAME_INPUT_DIR = ROOT_DIR / "data/train_eval_set/v1.0"
-DATAFRAME_OUTPUT_DIR = ROOT_DIR / "data/train_eval_set/v1.0"
-CITATION_CONTEXTS_ROOT = ROOT_DIR / "data/citation_contexts"
+ROOT_DIR = Path(os.getenv("ROOT_DIR", "/home/ratul/mustcite/data"))
+DATAFRAME_INPUT_DIR = ROOT_DIR / "train_eval_set/v1.0"
+DATAFRAME_OUTPUT_DIR = ROOT_DIR / "train_eval_set/v1.0"
+CITATION_CONTEXTS_ROOT = ROOT_DIR / "citation_contexts"
 
 STOP_WORDS = {'a', 'an', 'the', 'and', 'or', 'in', 'on', 'of', 'for', 'with', 'to', 'is', 'at'}
 
@@ -33,7 +33,7 @@ def normalize(title):
 def get_citation_context_path(paper_path):
     """Convert any tool output path (grobid/marker/nougat) to citation context JSON path."""
     reduced_path = paper_path
-    for tool_dir in ("data/grobid_output/", "data/marker_output/", "data/nougat_output/"):
+    for tool_dir in ("grobid_output/", "marker_output/", "nougat_output/"):
         if tool_dir in reduced_path:
             reduced_path = reduced_path.split(tool_dir, 1)[1]
             break
