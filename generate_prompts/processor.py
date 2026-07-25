@@ -28,7 +28,8 @@ class PromptGeneratorProcessor:
     def _initialize_progress_tracker(self, conference: str, years: Optional[List[int]] = None):
         """Create a progress tracker unique to this conference/year combination."""
         if years:
-            years_str = "_".join(map(str, sorted(years)))
+            years_sorted = sorted(years)
+            years_str = f"{years_sorted[0]}-{years_sorted[-1]}_n{len(years_sorted)}"
             filename = f"generate_prompts_progress_{conference}_{years_str}.json"
         else:
             filename = f"generate_prompts_progress_{conference}_all.json"

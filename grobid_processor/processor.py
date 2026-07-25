@@ -42,7 +42,8 @@ class GrobidProcessor:
     ):
         """Initialize progress tracker with unique file per conference/year combo"""
         if years:
-            years_str = "_".join(map(str, sorted(years)))
+            years_sorted = sorted(years)
+            years_str = f"{years_sorted[0]}-{years_sorted[-1]}_n{len(years_sorted)}"
             progress_filename = f"grobid_progress_{conference}_{years_str}.json"
         else:
             progress_filename = f"grobid_progress_{conference}_all.json"

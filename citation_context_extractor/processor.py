@@ -29,7 +29,8 @@ class CitationContextProcessor:
         """Create a progress tracker unique to this conference/year combination."""
         prefix = {"grobid": "grobid", "marker": "marker"}.get(self.source, "citation_context")
         if years:
-            years_str = "_".join(map(str, sorted(years)))
+            years_sorted = sorted(years)
+            years_str = f"{years_sorted[0]}-{years_sorted[-1]}_n{len(years_sorted)}"
             filename = f"{prefix}_progress_{conference}_{years_str}.json"
         else:
             filename = f"{prefix}_progress_{conference}_all.json"
