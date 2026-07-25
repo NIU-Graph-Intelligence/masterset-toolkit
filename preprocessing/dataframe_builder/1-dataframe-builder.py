@@ -105,6 +105,12 @@ def main():
                 if pdf_path.startswith("data/"):
                     pdf_path = pdf_path[len("data/"):]
                 absolute_pdf_path = ROOT_DIR / pdf_path
+                if not absolute_pdf_path.exists():
+                    # PDF was removed from the corpus (e.g. determined not to
+                    # be a real research paper) -- exclude it even if stale
+                    # grobid/citation-context output from before the removal
+                    # still exists on disk from an earlier run.
+                    continue
                 citation_contexts_path = str(absolute_pdf_path).replace("/papers", "/citation_contexts", 1).replace(".pdf", ".json")
                 if not os.path.exists(citation_contexts_path):
                     # that paper has no citation contexts due to possible reasons:
