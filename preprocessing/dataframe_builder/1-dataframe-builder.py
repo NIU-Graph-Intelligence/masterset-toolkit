@@ -116,6 +116,7 @@ def main():
                 title = paper.get("title", "")
                 abstract = paper.get("abstract", "")
                 authors = paper.get("authors", [])
+                bibtex = paper.get("bibtex", "")
                 year = paper.get("year", year)
                 venue = paper.get("conference", conf)
                 path = ""
@@ -145,6 +146,7 @@ def main():
                     "year": int(year),
                     "venue": venue,
                     "authors": authors,
+                    "bibtex": bibtex,
                     "references": [],
                 })
 
